@@ -1,64 +1,53 @@
-package endpoints
+package controllers
 
 import (
 	"net/http"
+	"encoding/json"
 
 	"github.com/gorilla/mux"
-
-	conf "../config"
-	. "../utils"
-	. "../dao"
-	. "../models"
-	"encoding/json"
 	"gopkg.in/mgo.v2/bson"
+
+	. "../utils"
+	. "../repositories"
+	. "../models"
 )
 
-var (
-	config = conf.Config{}
-	taskDAO = TasksDAO{}
-)
-
-func init() {
-
-	config.Read()
-
-	taskDAO.Server = config.Server
-	taskDAO.Database = config.Database
-	taskDAO.Connect()
+type TaskController struct {
+	Repo *TasksRepository
 }
 
-func HelloEndPoint(w http.ResponseWriter, r *http.Request) {
+func (c *TaskController) HelloWorld(w http.ResponseWriter, r *http.Request) {
 
-	RespondWithJson( w, http.StatusOK, "hello :)")
+	RespondWithJson( w, http.StatusOK, "Hello World :)")
 }
 
-func AllTasksEndPoint(w http.ResponseWriter, r *http.Request) {
+func (c *TaskController) FindAllTasks(w http.ResponseWriter, r *http.Request) {
 
-	movies, err := taskDAO.FindAll()
+	tasks, err := c.Repo.FindAll()
 
 	if err != nil {
 		RespondWithError( w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	RespondWithJson( w, http.StatusOK, movies)
+	RespondWithJson( w, http.StatusOK, tasks)
 }
 
-func FindTaskEndpoint(w http.ResponseWriter, r *http.Request) {
+func (c *TaskController) FindTaskById(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
-	movie, err := taskDAO.FindById( params["id"])
+	task, err := c.Repo.FindById( params["id"])
 
 	if err != nil {
 		RespondWithError( w, http.StatusBadRequest, "Invalid Task ID")
 		return
 	}
 
-	RespondWithJson( w, http.StatusOK, movie)
+	RespondWithJson( w, http.StatusOK, task)
 }
 
 
-func CreateTaskEndPoint(w http.ResponseWriter, r *http.Request) {
+func (c *TaskController) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	var task Task
@@ -69,7 +58,7 @@ func CreateTaskEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	task.ID = bson.NewObjectId()
-	if err := taskDAO.Insert( task); err != nil {
+	if err := c.Repo.Insert( task); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -77,7 +66,7 @@ func CreateTaskEndPoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusCreated, task)
 }
 
-func UpdateTaskEndpoint(w http.ResponseWriter, r *http.Request) {
+func (c *TaskController) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 	var task Task
@@ -87,7 +76,7 @@ func UpdateTaskEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := taskDAO.Update( task); err != nil {
+	if err := c.Repo.Update( task); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -95,11 +84,11 @@ func UpdateTaskEndpoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusOK, map[string]string{"result": "success"})
 }
 
-func DeleteTaskEndpoint(w http.ResponseWriter, r *http.Request) {
+func (c *TaskController) DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 
-	if err := taskDAO.Delete( params["id"]); err != nil {
+	if err := c.Repo.Delete( params["id"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
