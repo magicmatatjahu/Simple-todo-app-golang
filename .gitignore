@@ -1,0 +1,5 @@
+# IDE folder
+.idea
+
+# Config data (database, login etc.)
+config.toml
